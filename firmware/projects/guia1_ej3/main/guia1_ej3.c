@@ -30,10 +30,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "led.h"
-#include "switch.h"
 
 /*==================[macros and definitions]=================================*/
-#define CONFIG_BLINK_PERIOD 1000
+#define CONFIG_BLINK_PERIOD 500
 
 enum MODO {ON, OFF, TOGGLE}; //Modos de operación, ON=0, OFF=1, TOGGLE=2
 
@@ -127,9 +126,9 @@ void app_main(void){
 
 //  Los valores de abajo son los que se cambiarán para hacer funcionar distintos leds en distintos modos
 
-	foco->mode = ON;
+	foco->mode = TOGGLE;
 	foco->n_led=2;
-	foco->n_ciclos=5;
+	foco->n_ciclos=10;
 	LedsInit();
 	control_leds(foco);
 }
