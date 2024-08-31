@@ -53,14 +53,16 @@ void app_main(void){
 	gpioConf_t vector [4]; //Vector de struct 
 	uint8_t digito=2; //Este valor puede cambiarse del 0 al 9 
 
-	vector[0].dir=1; //Se setean como salidas
 	vector[0].pin=GPIO_20;
-	vector[1].dir=1;
 	vector[1].pin=GPIO_21;
-	vector[2].dir=1;
 	vector[2].pin=GPIO_22;
-	vector[3].dir=1;
 	vector[3].pin=GPIO_23;
+
+	for(int i=0; i<4; i++)
+	{
+		vector[i].dir=GPIO_OUTPUT; //se establecen los pines como salida
+		GPIOInit(vector[i].pin, vector[i].dir); //Se inicializan los pines
+	}
 
 	estado_pines(vector, digito);
 }
