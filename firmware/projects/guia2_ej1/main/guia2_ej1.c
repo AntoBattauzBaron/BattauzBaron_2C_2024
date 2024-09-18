@@ -21,7 +21,7 @@
  * |:----------:|:-----------------------------------------------|
  * | 06/09/2024 | Document creation		                         |
  *
- * @author Battauz Baron Antonella (antobattauzbaron.abb@gmail.com)
+ * @author Battauz Barón Antonella (antobattauzbaron.abb@gmail.com)
  *
  */
 
