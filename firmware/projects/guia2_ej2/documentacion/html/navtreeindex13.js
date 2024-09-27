@@ -1,6 +1,5 @@
 var NAVTREEINDEX13 =
 {
-"ili9341_8c.html#ae9a82b50c8748942c64e90f7f8629669":[4,0,0,0,1,1,6,38],
 "ili9341_8c.html#ae9f7984c806b71627776323c6d7e642a":[4,0,0,0,1,1,6,82],
 "ili9341_8c.html#aef10f880cc4161fd8dca2422fc2f04d0":[4,0,0,0,1,1,6,15],
 "ili9341_8c.html#afc83c18e8d0854b8b4cdb9aca29c312b":[4,0,0,0,1,1,6,69],
@@ -249,5 +248,6 @@ var NAVTREEINDEX13 =
 "structgatts__profile__inst.html#aa9ceec967962d94ff3d01bc583b20eba":[3,0,7,8],
 "structgatts__profile__inst.html#ab7fe10f376247e7e1eacdc0f560e9ef1":[3,0,7,0],
 "structgatts__profile__inst.html#ac80bb15e946e87c121c1c47621314467":[3,0,7,1],
-"structgatts__profile__inst.html#af6dd66274275713e42141c8dcfbb0412":[3,0,7,5]
+"structgatts__profile__inst.html#af6dd66274275713e42141c8dcfbb0412":[3,0,7,5],
+"structhid__dev__cfg__t.html":[3,0,8]
 };

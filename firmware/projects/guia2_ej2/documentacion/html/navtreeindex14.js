@@ -1,6 +1,5 @@
 var NAVTREEINDEX14 =
 {
-"structhid__dev__cfg__t.html":[3,0,8],
 "structhid__dev__cfg__t.html#a11563208acc8e846560342314084748d":[3,0,8,0],
 "structhid__dev__cfg__t.html#a8ac7cda8f7b2f52a7ffbc0d4eb5524a2":[3,0,8,1],
 "structhid__report__map__t.html":[3,0,9],

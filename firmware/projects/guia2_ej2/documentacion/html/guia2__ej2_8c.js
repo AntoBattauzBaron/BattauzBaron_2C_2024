@@ -1,6 +1,5 @@
 var guia2__ej2_8c =
 [
-    [ "CONFIG_PERIOD_LECTURA", "guia2__ej2_8c.html#ad9c9cfecce8641ea90b15fe8527b0e46", null ],
     [ "CONFIG_REFRESH", "guia2__ej2_8c.html#afe3ecfc9df4969c95c07a975a15115b8", null ],
     [ "ActivarDesactivar", "guia2__ej2_8c.html#a33a3c5343826691de745563ea33f1a78", null ],
     [ "app_main", "guia2__ej2_8c.html#a630544a7f0a2cc40d8a7fefab7e2fe70", null ],
