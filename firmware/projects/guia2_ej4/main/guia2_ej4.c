@@ -8,9 +8,6 @@
  *
  * @section hardConn Hardware Connection
  *
- * |    Peripheral  |   ESP32   	|
- * |:--------------:|:--------------|
- * | 	PIN_X	 	| 	GPIO_X		|
  *
  *
  * @section changelog Changelog
@@ -34,17 +31,34 @@
 #include "uart_mcu.h"
 /*==================[macros and definitions]=================================*/
 /**
- * @brief Período en microsegundos para la activación del temporizador. Periodo de muestreo
+ * @brief Período en microsegundos para la activación del temporizador A. Periodo de muestreo (1/500Hz)
  */
 #define CONFIG_REFRESH 2000
+/**
+ * @brief Tamaño del arreglo con los datos del ECG
+ */
 #define BUFFER_SIZE 231
+/**
+ * @brief Período en microsegundos para la activación del temporizador B para los datos de ECG
+ */
 #define CONFIG_REFRESH_ECG 4329 
+/**
+ * @brief Posición en el arreglo que contiene los datos de ECG
+ */
 uint16_t cuentas_ECG = 0;
 
 /*==================[internal data definition]===============================*/
-
-TaskHandle_t leer_task_handle = NULL;
-
+/**
+ * @brief Handle de la tarea para enviar los datos de ECG en analógico
+ */
+TaskHandle_t enviar_task_handle = NULL;
+/**
+ * @brief Handle de la tarea para muestrear los datos de la señal analógica
+ */
+TaskHandle_t muestrear_task_handle = NULL;
+/**
+ * @brief Arreglo con los datos de ECG
+ */
 const char ecg[BUFFER_SIZE] = {
     76, 77, 78, 77, 79, 86, 81, 76, 84, 93, 85, 80,
     89, 95, 89, 85, 93, 98, 94, 88, 98, 105, 96, 91,
@@ -64,10 +78,6 @@ const char ecg[BUFFER_SIZE] = {
     99, 96, 102, 106, 99, 90, 92, 100, 87, 80, 82, 88, 77, 69, 75, 79,
     74, 67, 71, 78, 72, 67, 73, 81, 77, 71, 75, 84, 79, 77, 77, 76, 76,
 };
-/**
- * @brief Handle de la tarea para medir la distancia.
- */
-TaskHandle_t muestrear_task_handle = NULL;
 /*==================[internal functions declaration]=========================*/
 /**
  * @brief Función invocada en la interrupción del timer A
@@ -76,11 +86,18 @@ void FuncTimerA(void* param)
 {
 	vTaskNotifyGiveFromISR(muestrear_task_handle, pdFALSE); /* Envía una notificación a la tarea asociada al LED_1 */
 }
+/**
+ * @brief Función invocada en la interrupción del timer B
+ */
 void FuncTimerB(void* param)
 {
-	vTaskNotifyGiveFromISR(leer_task_handle, pdFALSE);
+	vTaskNotifyGiveFromISR(enviar_task_handle, pdFALSE);
 }
-
+/**
+ * @brief Tarea que muestrea los datos de una señal en el canal 1
+ *
+ * @param pvParameter parámetro de uso interno del sistema operativo
+ */
 static void muestrearTask(void *pvParameter){
 
 	uint16_t voltaje = 0;
@@ -93,7 +110,12 @@ static void muestrearTask(void *pvParameter){
 		UartSendString(UART_PC, " \r\n");
 	}
 }
-static void leerTask(void *pvParameter){
+/**
+ * @brief Tarea que envía datos analógicos por el canal 0
+ *
+ * @param pvParameter parámetro de uso interno del sistema operativo
+ */
+static void enviarTask(void *pvParameter){
 
 	while(true)
 	{
@@ -113,13 +135,13 @@ static void leerTask(void *pvParameter){
 
 /*==================[external functions definition]==========================*/
 void app_main(void){
-	timer_config_t timer = {
+	timer_config_t timer_A = {
         .timer = TIMER_A,
         .period = CONFIG_REFRESH,
         .func_p = FuncTimerA,
         .param_p = NULL
     };
-	TimerInit(&timer);
+	TimerInit(&timer_A);
 		timer_config_t timer_B = {
         .timer = TIMER_B,
         .period = CONFIG_REFRESH_ECG,
@@ -138,8 +160,8 @@ void app_main(void){
 	AnalogInputInit(&analog);
 	AnalogOutputInit();
 	xTaskCreate(&muestrearTask, "Muestrear", 2048, NULL, 5, &muestrear_task_handle);
-	xTaskCreate(&leerTask, "Leer", 2048, NULL, 5, &leer_task_handle);
-	TimerStart(timer.timer);
+	xTaskCreate(&enviarTask, "Leer", 2048, NULL, 5, &enviar_task_handle);
+	TimerStart(timer_A.timer);
 	TimerStart(timer_B.timer);
 	serial_config_t puertoSerie = {
 		.port = UART_PC,
