@@ -38,10 +38,6 @@
 
 /*==================[macros and definitions]=================================*/
 /**
- * @brief Período en milisegundos para la tarea de control de lectura
- */
-#define CONFIG_PERIOD_LECTURA 1000
-/**
  * @brief Período en microsegundos para la activación del temporizador.
  */
 #define CONFIG_REFRESH 1000000
@@ -70,7 +66,7 @@ TaskHandle_t medirDistancia_task_handle = NULL;
  */
 void FuncTimerA(void* param)
 {
-	vTaskNotifyGiveFromISR(medirDistancia_task_handle, pdFALSE); /* Envía una notificación a la tarea asociada al LED_1 */
+	vTaskNotifyGiveFromISR(medirDistancia_task_handle, pdFALSE); /* Envía una notificación a la tarea */
 }
 /**
  * @brief Tarea que mide la distancia usando un sensor ultrasónico y controla los LEDs en base a dicha distancia.
@@ -123,7 +119,7 @@ static void medirDistanciaTask(void *pvParameter){
 		LcdItsE0803Off();
 		LedsOffAll();
 	}
-		vTaskDelay(CONFIG_PERIOD_LECTURA / portTICK_PERIOD_MS);
+	
 	}
 }
 /**
