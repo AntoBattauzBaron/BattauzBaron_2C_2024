@@ -3,7 +3,7 @@
  * @section genDesc General Description
  *
  * Este codigo permite medir distancias mediante ultrasonido. Se puede detener la medición y mantener el valor en pantalla
- * con interrupciones
+ * con interrupciones. Además el puerto serie permite visualizar las mediciones en la computadora
  * <a href="https://drive.google.com/...">Operation Example</a>
  *
  * @section hardConn Hardware Connection
@@ -39,10 +39,6 @@
 
 /*==================[macros and definitions]=================================*/
 /**
- * @brief Período en milisegundos para la tarea de control de lectura
- */
-#define CONFIG_PERIOD_LECTURA 1000
-/**
  * @brief Período en microsegundos para la activación del temporizador.
  */
 #define CONFIG_REFRESH 1000000
@@ -51,14 +47,13 @@
  */
 bool activar=1;
 /**
- * @brief Indicador para mantener o no la medición
+ * @brief Indicador para mantener o no la medición, inicia sin mantener
  */
 bool hold=0;
 /**
  * @brief Estado en la tecla medida
  */
 uint8_t teclas=0;
-
 
 
 /*==================[internal data definition]===============================*/
@@ -73,7 +68,7 @@ TaskHandle_t medirDistancia_task_handle = NULL;
  */
 void FuncTimerA(void* param)
 {
-	vTaskNotifyGiveFromISR(medirDistancia_task_handle, pdFALSE); /* Envía una notificación a la tarea asociada al LED_1 */
+	vTaskNotifyGiveFromISR(medirDistancia_task_handle, pdFALSE); /* Envía una notificación a la tarea asociada */
 }
 /**
  * @brief Tarea que mide la distancia usando un sensor ultrasónico y controla los LEDs en base a dicha distancia.
@@ -83,13 +78,14 @@ void FuncTimerA(void* param)
 static void medirDistanciaTask(void *pvParameter){
 
 	uint16_t distancia=0;
-    while(1){
-	
-	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-	if(activar)
+    while(true){
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+	if(activar == true)
 	{
-		distancia=HcSr04ReadDistanceInCentimeters();
+		distancia = HcSr04ReadDistanceInCentimeters();
+
 		if(distancia<10)
 		{
 			LedOff(LED_1);
@@ -115,7 +111,7 @@ static void medirDistanciaTask(void *pvParameter){
 			LedOn(LED_3);
 		}
 
-		if(!hold)
+		if(hold == false)
 		{
 			LcdItsE0803Write(distancia);
 		}
@@ -146,6 +142,9 @@ void mantener()
 {
 	hold =! hold;
 }
+/**
+ * @brief Función que lee el teclado de la PC por el puerto serie y llama a cambiar el estado de activar y hold
+ */
 void atenderTecladoPC()
 {
 	uint8_t tecladoPC=0;
@@ -164,7 +163,6 @@ void atenderTecladoPC()
 	default:
 		break;
 	}
-	
 }
 /*==================[external functions definition]==========================*/
 void app_main(void){
@@ -189,9 +187,7 @@ void app_main(void){
 		.baud_rate = 9600,
 		.func_p = atenderTecladoPC,
 		.param_p = NULL
-
 	};
 	UartInit(&puertoSerie);
-	
 }
 /*==================[end of file]============================================*/
