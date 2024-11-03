@@ -170,5 +170,6 @@ void app_main(void){
 		.param_p = NULL
 	};
 	UartInit(&puertoSerie);
+	//prueba
 }
 /*==================[end of file]============================================*/
