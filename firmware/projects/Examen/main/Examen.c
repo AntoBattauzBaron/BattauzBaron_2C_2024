@@ -10,17 +10,20 @@
  *
  * |     ESP32      |     PERIFERICO    |
  * |:--------------:|:------------------|
- * | 	GPIO_20	 	|  CH_x_Aceleromet  |
- * | 	GPIO_21	 	|  CH_y_Aceleromet  |
- * | 	GPIO_22	 	|  CH_z_Aceleromet  |
+ * | 	 CH1	 	|  CH_x_Aceleromet  |
+ * | 	 CH2	 	|  CH_y_Aceleromet  |
+ * | 	 CH3     	|  CH_z_Aceleromet  |
  * | 	GPIO_23	 	|    Señal buzzer   |
  * | 	 ECHO	 	| 	   GPIO_3	    |
  * | 	TRIGGER	 	| 	   GPIO_2	    |
- * | 	  +5V	 	| 	     +5V		|
- * | 	  GND	 	| 	     GND        |
+ * | 	  +5V	 	| 	 +5V hc_sr04	|
+ * | 	  GND	 	| 	 GND hc_sr04    |
  * |    GPIO_18	 	| 	     RX		    |
  * | 	GPIO_19	    | 	     TX         |
-
+ * |    +3.3V	 	| 	  Vcc buzzer 	|
+ * | 	  GND	 	| 	 GND buzzer     |
+ * |    +3.3V	 	| 	  Vcc aceler 	|
+ * | 	  GND	 	| 	 GND aceler     |
  *
  *
  * @section changelog Changelog
@@ -247,7 +250,6 @@ static void medirAceleracionTask(void *pvParameter){
 		{
 			UartSendString(UART_CONNECTOR, "Caída detectada \r\n");
 		}
-		
 	}
 }
 /*==================[external functions definition]==========================*/
