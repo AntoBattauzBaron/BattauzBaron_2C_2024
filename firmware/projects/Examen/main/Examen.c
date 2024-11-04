@@ -56,11 +56,11 @@
 /**
  * @brief Período en milisegundos del buzzer cuando avisa precaución.
  */
-#define FRECUENCIA_PRECAUCION 1000
+#define PERIODO_PRECAUCION 1000
 /**
  * @brief Período en milisegundos del buzzer cuando avisa peligro.
  */
-#define FRECUENCIA_PELIGRO 500
+#define PERIODO_PELIGRO 500
 /**
  * @brief Ordenada al origen de la función para el acelerómetro.
  */
@@ -81,10 +81,6 @@ bool peligro = false;
  * @brief Variable que indica si hay precaución o no o no (3 < distancia < 5)
  */
 bool precaución = false;
-/**
- * @brief Variable que indica si ocurrió un accidente o no.
- */
-bool accidente = false;
 /**
  * @brief puerto serie por el que se envía info al módulo bluetooth por el segundo puerto serie
  */
@@ -129,30 +125,22 @@ void control_buzzer()
 	if(peligro)
 	{
 		GPIOState(GPIO_23, 1);
-		vTaskDelay(FRECUENCIA_PELIGRO / portTICK_PERIOD_MS);
+		vTaskDelay(PERIODO_PELIGRO / portTICK_PERIOD_MS);
 		GPIOState(GPIO_23, 0);
+		vTaskDelay(PERIODO_PELIGRO / portTICK_PERIOD_MS);
 	}
 
 	else if(precaución)
 	{
 		GPIOState(GPIO_23, 1);
-		vTaskDelay(FRECUENCIA_PRECAUCION / portTICK_PERIOD_MS);
-		GPIOState(GPIO_23, 0);		
+		vTaskDelay(PERIODO_PRECAUCION / portTICK_PERIOD_MS);
+		GPIOState(GPIO_23, 0);	
+		vTaskDelay(PERIODO_PRECAUCION / portTICK_PERIOD_MS);	
 	}
 
 	else
 	{
 		GPIOState(GPIO_23, 0);
-	}
-}
-/**
- * @brief Función que avisa al módulo bluetooth si hubo un accidente
- */
-void avisar_accidente()
-{
-	if(accidente)
-	{
-		UartSendString(UART_CONNECTOR, "Caída detectada \r\n");
 	}
 }
 /**
@@ -166,36 +154,39 @@ static void medirDistanciaTask(void *pvParameter){
 
 	while(1){
 	
-	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-	distancia = HcSr04ReadDistanceInCentimeters();
+		distancia = HcSr04ReadDistanceInCentimeters();
 
-		if(distancia>500)
-		{
-			LedOn(LED_1);
-			LedOff(LED_2);
-			LedOff(LED_3);
-		}
+			if(distancia>500)
+			{
+				LedOn(LED_1);
+				LedOff(LED_2);
+				LedOff(LED_3);
+				precaución = false;
+				peligro = false;
+			}
 
-		else if(distancia>300 && distancia<500)
-		{
-			LedOn(LED_1);
-			LedOn(LED_2);
-			LedOff(LED_3);
-			precaución = true;
-			UartSendString(UART_CONNECTOR, "Precaución, vehículo cerca \r\n");
-		}
+			else if(distancia>300 && distancia<500)
+			{
+				LedOn(LED_1);
+				LedOn(LED_2);
+				LedOff(LED_3);
+				precaución = true;
+				peligro = false;
+				UartSendString(UART_CONNECTOR, "Precaución, vehículo cerca \r\n");
+			}
 
-		else if(distancia<300)
-		{
-			LedOn(LED_1);
-			LedOn(LED_2);
-			LedOn(LED_3);
-			peligro = true;
-			UartSendString(UART_CONNECTOR, "Peligro, vehículo cerca \r\n");
-		}
-
-		control_buzzer();
+			else if(distancia<300)
+			{
+				LedOn(LED_1);
+				LedOn(LED_2);
+				LedOn(LED_3);
+				peligro = true;
+				precaución = false;
+				UartSendString(UART_CONNECTOR, "Peligro, vehículo cerca \r\n");
+			}
+			control_buzzer();
 	}
 }
 /**
@@ -254,13 +245,9 @@ static void medirAceleracionTask(void *pvParameter){
 
 		if((aceleracion_en_x + aceleracion_en_y + aceleracion_en_z) >= UMBRAL_ACCIDENTE)
 		{
-			accidente = true;
+			UartSendString(UART_CONNECTOR, "Caída detectada \r\n");
 		}
 		
-		else
-		{
-			accidente = false;
-		}
 	}
 }
 /*==================[external functions definition]==========================*/
@@ -274,6 +261,8 @@ void app_main(void){
         .func_p = FuncTimerA,
         .param_p = NULL
     };
+	TimerInit(&timer_A);
+	TimerStart(timer_A.timer);
 
 	timer_config_t timer_B = {
         .timer = TIMER_B,
@@ -282,15 +271,13 @@ void app_main(void){
         .param_p = NULL
     };
 	TimerInit(&timer_B);
+	TimerStart(timer_B.timer);
 
-	TimerInit(&timer_A);
     xTaskCreate(&medirDistanciaTask, "MedirDistancia", 512, NULL, 5, &medirDistancia_task_handle);
 	xTaskCreate(&medirAceleracionTask, "MedirAceleracion", 512, NULL, 5, &medirAceleracion_task_handle);
-	TimerStart(timer_A.timer);
-	TimerStart(timer_B.timer);
-	GPIOInit(GPIO_19, GPIO_OUTPUT);
-	UartInit(&puertoSerie);
 
+	GPIOInit(GPIO_23, GPIO_OUTPUT);
+	UartInit(&puertoSerie);
 
 }
 /*==================[end of file]============================================*/
