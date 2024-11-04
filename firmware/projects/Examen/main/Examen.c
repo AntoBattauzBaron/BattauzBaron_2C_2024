@@ -2,24 +2,34 @@
  *
  * @section genDesc General Description
  *
- * This section describes how the program works.
+ * Este código resuelve el examen parcial de Electrónica Programable. Es un detector de eventos peligrosos para ciclistas.
  *
  * <a href="https://drive.google.com/...">Operation Example</a>
  *
  * @section hardConn Hardware Connection
  *
- * |    Peripheral  |   ESP32   	|
- * |:--------------:|:--------------|
- * | 	PIN_X	 	| 	GPIO_X		|
+ * |     ESP32      |     PERIFERICO    |
+ * |:--------------:|:------------------|
+ * | 	GPIO_20	 	|  CH_x_Aceleromet  |
+ * | 	GPIO_21	 	|  CH_y_Aceleromet  |
+ * | 	GPIO_22	 	|  CH_z_Aceleromet  |
+ * | 	GPIO_23	 	|    Señal buzzer   |
+ * | 	 ECHO	 	| 	   GPIO_3	    |
+ * | 	TRIGGER	 	| 	   GPIO_2	    |
+ * | 	  +5V	 	| 	     +5V		|
+ * | 	  GND	 	| 	     GND        |
+ * |    GPIO_18	 	| 	     RX		    |
+ * | 	GPIO_19	    | 	     TX         |
+
  *
  *
  * @section changelog Changelog
  *
  * |   Date	    | Description                                    |
  * |:----------:|:-----------------------------------------------|
- * | 12/09/2023 | Document creation		                         |
+ * | 04/11/2024 | Document creation		                         |
  *
- * @author Albano Peñalva (albano.penalva@uner.edu.ar)
+ * @author Antonella Battauz Baron (antobattauzbaron.abb@gmail.com)
  *
  */
 
@@ -36,41 +46,66 @@
 #include "analog_io_mcu.h"
 /*==================[macros and definitions]=================================*/
 /**
- * @brief Período en microsegundos para la activación del temporizador.
+ * @brief Período en microsegundos para la activación del temporizador para medir distancia.
  */
-#define CONFIG_REFRESH 500000
+#define CONFIG_REFRESH_MEDIR 500000
 /**
- * @brief Período en microsegundos para la activación del temporizador.
+ * @brief Período en microsegundos para la activación del temporizador para medir aceleración.
  */
 #define CONFIG_REFRESH_ACELEROMETRO 10000
+/**
+ * @brief Período en milisegundos del buzzer cuando avisa precaución.
+ */
 #define FRECUENCIA_PRECAUCION 1000
+/**
+ * @brief Período en milisegundos del buzzer cuando avisa peligro.
+ */
 #define FRECUENCIA_PELIGRO 500
+/**
+ * @brief Ordenada al origen de la función para el acelerómetro.
+ */
 #define ORDENADA_AL_ORIGEN_ACELERACION 1650
+/**
+ * @brief Pendiente de la función para el acelerómetro.
+ */
 #define PENDIENTE_ACELERACION 300
+/**
+ * @brief Umbral en G a partir del que se considera que ocurrió un accidente.
+ */
 #define UMBRAL_ACCIDENTE 4
+/**
+ * @brief Variable que indica si hay peligro o no (distancia < 3m)
+ */
 bool peligro = false;
+/**
+ * @brief Variable que indica si hay precaución o no o no (3 < distancia < 5)
+ */
 bool precaución = false;
+/**
+ * @brief Variable que indica si ocurrió un accidente o no.
+ */
 bool accidente = false;
-	serial_config_t puertoSerie = {
-		.port = UART_CONNECTOR,
-		.baud_rate = 115200,
-		.func_p = NULL,
-		.param_p = NULL
-	};
+/**
+ * @brief puerto serie por el que se envía info al módulo bluetooth por el segundo puerto serie
+ */
+serial_config_t puertoSerie = {
+	.port = UART_CONNECTOR,
+	.baud_rate = 115200,
+	.func_p = NULL,
+	.param_p = NULL
+};
 /*==================[internal data definition]===============================*/
-
-/*==================[internal functions declaration]=========================*/
-
 /**
  * @brief Handle de la tarea para medir la distancia.
  */
 TaskHandle_t medirDistancia_task_handle = NULL;
 
 /**
- * @brief Handle de la tarea para medir la distancia.
+ * @brief Handle de la tarea para medir la aceleración.
  */
 TaskHandle_t medirAceleracion_task_handle = NULL;
 
+/*==================[internal functions declaration]=========================*/
 /**
  * @brief Función invocada en la interrupción del timer A
  */
@@ -80,34 +115,39 @@ void FuncTimerA(void* param)
 }
 
 /**
- * @brief Función invocada en la interrupción del timer A
+ * @brief Función invocada en la interrupción del timer B
  */
 void FuncTimerB(void* param)
 {
 	vTaskNotifyGiveFromISR(medirAceleracion_task_handle, pdFALSE); /* Envía una notificación a la tarea */
 }
-
+/**
+ * @brief Función que controla la activación y la frecuencia del buzzer
+ */
 void control_buzzer()
 {
 	if(peligro)
 	{
-		GPIOState(GPIO_20, 1);
+		GPIOState(GPIO_23, 1);
 		vTaskDelay(FRECUENCIA_PELIGRO / portTICK_PERIOD_MS);
-		GPIOState(GPIO_20, 0);
+		GPIOState(GPIO_23, 0);
 	}
 
 	else if(precaución)
 	{
-		GPIOState(GPIO_20, 1);
+		GPIOState(GPIO_23, 1);
 		vTaskDelay(FRECUENCIA_PRECAUCION / portTICK_PERIOD_MS);
-		GPIOState(GPIO_20, 0);		
+		GPIOState(GPIO_23, 0);		
 	}
 
 	else
 	{
-		GPIOState(GPIO_20, 0);
+		GPIOState(GPIO_23, 0);
 	}
 }
+/**
+ * @brief Función que avisa al módulo bluetooth si hubo un accidente
+ */
 void avisar_accidente()
 {
 	if(accidente)
@@ -115,6 +155,11 @@ void avisar_accidente()
 		UartSendString(UART_CONNECTOR, "Caída detectada \r\n");
 	}
 }
+/**
+ * @brief Tarea que mide la distancia por ultrasonido, controla los leds y avisa mediante bluetooth
+ *
+ * @param pvParameter parámetro de uso interno del sistema operativo
+ */
 static void medirDistanciaTask(void *pvParameter){
 
 	uint16_t distancia = 0;
@@ -153,6 +198,11 @@ static void medirDistanciaTask(void *pvParameter){
 		control_buzzer();
 	}
 }
+/**
+ * @brief Tarea que mide la señal del acelerómetro y calcula la aceleración
+ *
+ * @param pvParameter parámetro de uso interno del sistema operativo
+ */
 static void medirAceleracionTask(void *pvParameter){
 
 	uint16_t aceleracion_en_x = 0;
@@ -220,7 +270,7 @@ void app_main(void){
 
 	timer_config_t timer_A = {
         .timer = TIMER_A,
-        .period = CONFIG_REFRESH,
+        .period = CONFIG_REFRESH_MEDIR,
         .func_p = FuncTimerA,
         .param_p = NULL
     };
@@ -238,7 +288,7 @@ void app_main(void){
 	xTaskCreate(&medirAceleracionTask, "MedirAceleracion", 512, NULL, 5, &medirAceleracion_task_handle);
 	TimerStart(timer_A.timer);
 	TimerStart(timer_B.timer);
-	GPIOInit(GPIO_20, GPIO_OUTPUT);
+	GPIOInit(GPIO_19, GPIO_OUTPUT);
 	UartInit(&puertoSerie);
 
 
